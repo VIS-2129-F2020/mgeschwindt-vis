@@ -1,0 +1,341 @@
+---
+title: "Assignment1"
+author: "Mary Geschwindt"
+date: "9/10/2020"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+As my first step, I will load the following libraries:
+
+```{r message=FALSE, results='hide'}
+library(tidycensus)
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(prettydoc)
+library(scales)
+```
+
+## Creating the Dataset
+
+I will load the person-level data using the ACS1 from 2018:
+
+```{r, message=FALSE, results='hide'}
+person_vars_2018 <- pums_variables %>%
+  distinct(year, survey, var_code,
+           var_label, data_type, level) %>%
+  filter(level == "person", year == 2018, survey == "acs1")
+```
+
+Once I have the person-level data, I can create my dataset. I have selected the following variables to include:
+
+1. NYC Community Districts (categorical): PUMA*
+2. Sex (categorical): SEX*
+3. Means of transportation to work (categorical): JWTR
+4. Age (continuous): AGEP
+5. Travel time to work (continuous): JWMNP
+6. Ambulatory difficulty (categorical): DPHY
+7. Race (categorical): RAC1P
+8. Income (continuous): PINCP
+
+* *PUMA and SEX are used to the define the population to be only women in NYC.*
+
+I will create a vector to hold all PUMAs for NYC:
+
+```{r, message=FALSE, results='hide'}
+nyc_districts <- c("03710", "03705", "03708", "03707", "03706", "03701", "03709", "03703", "03704", "03702", "04001", "04004", "04003", "04002", "04008", "04005", "04012", "04006", "04011", "04013", "04017", "04014", "04018", "04015", "04016", "04007", "04010", "04009", "03810", "03809", "03807", "03808", "03806", "03805", "03802", "03803", "03804", "03801", "04101", "04109", "04102", "04107", "04110", "04108", "04103", "04106", "04111", "04113", "04104", "04112", "04105", "04114", "03903", "03902", "03901")
+```
+
+
+I will get my data:
+
+```{r, message=FALSE, results='hide'}
+women_nyctransport2018 <- get_pums(variables = c("PUMA",
+                                      "SEX",
+                                      "JWTR",
+                                      "AGEP",
+                                      "JWMNP",
+                                      "DPHY",
+                                      "RAC1P",
+                                      "PINCP"),
+                        state = "NY",
+                        year = 2018,
+                        survey = "acs1",
+                        recode = TRUE) %>%
+  filter(PUMA == nyc_districts,
+         SEX == 2,
+         JWMNP > 0,
+         PINCP > 0) %>%
+  select(JWTR_label, AGEP, JWMNP, RAC1P_label, PINCP, DPHY_label)
+```
+
+## Creating the Figures
+
+Now that I have my variables selected, my geographic boundary defined, and my data loaded, I can start to visualize a number of figures to represent this data.
+
+### Figure 1 Plot
+
+I will create a scatterplot that shows race by color, means of transportation by shape, income by size, age on the x-axis, and travel time to work on the y-axis.
+
+```{r, message=FALSE, results='hide'}
+ggplot(women_nyctransport2018,
+       aes(x = AGEP,
+           y = JWMNP,
+           size = PINCP,
+           shape = JWTR_label,
+           color = RAC1P_label)) +
+  geom_point() +
+  scale_size_continuous(name = "Income") +
+  scale_x_continuous(name = "Age (years)") +
+  scale_y_continuous(name = "Travel Time to Work (minutes") +
+  scale_color_discrete(name = "Race",
+                       labels = c("Asian Alone",
+                                  "Black or African American Alone",
+                                   "Some Other Race Alone",
+                                  "Two or More Races",
+                                  "White Alone")) +
+  scale_shape(name = element_blank(),
+              labels = c("Bicycle",
+                          "Bus or trolley bus",
+                          "Car, truck, or van",
+                          "Ferryboat",
+                           "Other method", 
+                           "Railroad",
+                           "Subway or elevated",
+                           "Taxicab",
+                           "Walked")) +
+  theme_bw() +
+  theme(legend.key.size = unit(0.1, "cm"))
+```
+
+It's clear that the number of symbols combined with color makes this graph very hard to read. It also seems to be because there are 5 variables plotted that this plot is difficult to discern any conclusion between the variables. One would have to spend a long time looking at this plot to come to any conclusion.
+
+### Figure 2 Plot
+
+I will adjust the next scatterplot so that race is a symbol, means of transportation is color, travel time to work is size, age is on the x-axis, and income is on the y-axis.
+
+```{r, message=FALSE, results='hide'}
+ggplot(women_nyctransport2018,
+       aes(x = AGEP,
+           y = JWMNP,
+           size = PINCP,
+           shape = RAC1P_label,
+           color = JWTR_label)) +
+  geom_point() +
+  scale_size_continuous(name = "Income") +
+  scale_x_continuous(name = "Age (years)") +
+  scale_y_continuous(name = "Travel Time to Work (minutes)") +
+  scale_color_discrete(name = "Means of Transportation",
+                       labels = c("Bicycle",
+                                  "Bus or trolley bus",
+                                  "Car, truck, or van",
+                                  "Ferryboat",
+                                  "Other method", 
+                                  "Railroad",
+                                  "Subway or elevated",
+                                  "Taxicab",
+                                  "Walked")) +
+  scale_shape(name = element_blank(),
+              labels = c("Asian Alone",
+                          "Black or African American Alone",
+                          "Some Other Race Alone",
+                          "Two or More Races",
+                          "White Alone")) +
+  theme_bw() +
+  theme(legend.key.size = unit(0.1, "cm"))
+```
+
+### Figure 3 Plot
+
+After looking at the scatterplots, I think trying a bar graph might be helpful to visualize this data. I will keep age on the x axis and travel time to work on the y axis. I want the bar graph to be stacked to show different means of transportation using color. I will leave race, income, and physical disability out of this one, but I will come back to mapping those variables later.
+
+```{r}
+ggplot(women_nyctransport2018,
+       aes(x = AGEP,
+           y = JWMNP,
+           fill = JWTR_label)) +
+  geom_bar(stat = "identity", position = "fill", width = 0.5) +
+  scale_x_continuous(name = "Age") +
+  scale_y_continuous(name = "Travel Time to Work") +
+  labs(fill = "Means of Transportation") +
+  theme_bw()
+```
+
+This is my favorite plot. I find it easy to read and compare the three variables and to determine a relationship between them. However, because there are many colors involved, it could be expected to take someone a few minutes to read this plot, as opposed to their being able to understand it at a glance.
+
+### Figure 4 Plot
+
+After looking at the results of the Figure 3 Plot, I'd like to compare the variables for travel time to work, disability, and means of transportation. I will create a dot plot where means of transportation is on the x-axis, travel time to work is on the y-axis, and disability or no disability is indicated by color.
+
+I want to attribute the use of **\n** in my code to Meghan Casey, who explained how to use that function to place the text on the next line.
+
+```{r}
+ggplot(women_nyctransport2018,
+       aes(x = JWTR_label,
+           y = JWMNP,
+           fill = DPHY_label)) +
+  geom_dotplot() +
+  scale_y_continuous(name = "Travel Time to Work (minutes)") +
+  scale_x_discrete(name = "Means of Transportation To Work",
+                   labels = c("Bicycle",
+                                  "Bus or\n trolley bus",
+                                  "Car\n truck\n or van",
+                                  "Ferryboat",
+                                  "Other", 
+                                  "Railroad",
+                                  "Subway\n or elevated",
+                                  "Taxicab",
+                                  "Walked")) +
+  scale_fill_discrete(name = "Physical Disability",
+                       labels = c("Not Disabled",
+                                  "Disabled")) +
+  theme_classic()
+```
+
+I find this plot intriguing, because it tells me immediately that no one in my selected population (women in NYC) who have a physical disability are biking, taking the railroad, or taking a taxi to work.
+
+### Figure 5 Plot
+
+Race will be represented by color. Income will be on the y-axis. Travel time will be on the x-axis.
+
+I will attribute the use of label = comma, limits = c(0, 1000000) to create the income labels to Aron Lessor.
+
+```{r}
+ggplot(women_nyctransport2018,
+       aes(x = JWMNP,
+           y = PINCP,
+           fill = RAC1P_label)) +
+  geom_point(alpha = 0.5,
+             shape = 21,
+             color = "black") +
+  scale_x_continuous(name = "Travel Time to Work (minutes)") +
+  scale_y_continuous(name = "Income (dollars)",
+                     label = comma,
+                     limits = c(0, 1000000)) +
+  labs(fill = "Race") +
+  theme_classic()
+```
+
+### Figure 6 Plot
+
+Means of transportation to work will be represented on the y-axis. Race will be located on the x-axis. A gradient will represent travel time to work.
+
+```{r}
+ggplot(women_nyctransport2018,
+       aes(x = RAC1P_label,
+           y = JWTR_label,
+           fill = JWMNP)) +
+  geom_tile() +
+  scale_x_discrete(name = "Race",
+                   labels = c("Asian",
+                          "Black or\n African\n American",
+                          "Some Other\n Race\n Alone",
+                          "Two or\n More\n Races",
+                          "White Alone")) +
+  scale_y_discrete(name = "Means of Transportation") +
+  scale_fill_distiller(palette = "grey50") +
+  labs(fill = "Travel Time to Work (minutes)") +
+  theme_classic()
+```
+
+I think that this is also a plot which makes it easy to see a relationship between three variables at once. I think reversing the gradient order would feel more natural, but I will leave this as a default for now.
+
+### Figure 7 Plot
+
+For Figure 7, I'll create a violin plot. Disability will be the violin fill color, race will by the x-axis variable, and the y-axis variable will be travel time to work.
+
+```{r}
+ggplot(women_nyctransport2018,
+       aes(x = RAC1P_label,
+           y = JWMNP,
+           fill = DPHY_label)) +
+  geom_violin(width = 1, size = 0.1, alpha = 1) +
+  scale_y_continuous(name = "Travel Time to Work (minutes)") +
+  scale_x_discrete(name = "Race",
+                     labels = c("Asian",
+                          "Black or\n African American",
+                          "Some\n Other\n Race",
+                          "Two or\n More Races",
+                          "White")) +
+  scale_fill_discrete(name = "Physical Disability",
+                      labels = c("Not Disabled",
+                                 "Disabled")) +
+  theme_minimal()
+```
+
+In looking at this plot, I'm not sure if there is some mistake in the physical disability variables being plotted. I would have to go through and look more closely at my dataset, but I did not expect the only "Disabled" individuals to be Black or African American.
+
+### Figure 8 Plot
+
+I am interested in trying a polar coordinate plot. I think the best variable to represent would be means of transportation to work as a pie chart. 
+
+```{r, message=FALSE, results='hide'}
+pie <- ggplot(women_nyctransport2018,
+       aes(x = "",
+           y = "",
+           fill = factor(JWTR_label))) +
+  geom_bar(width = 1,
+           stat = "identity") +
+  theme(axis.line = element_blank(),
+        plot.title = element_text(hjust = 0.5)) +
+  labs(fill = "Means of Transportation to Work",
+       x = NULL,
+       y = NULL,
+       title = "Pie Chart of Means of Transportation to Work")
+
+pie + coord_polar(theta = "y", start = 0)
+theme_minimal()
+```
+
+I think that this pie chart easily reveals that the subway or elevated train is the most used means of transportation to work for my selected population. However, because there are many options, it gets harder to read and compare the other slices of the pie.
+
+### Figure 9 Plot
+
+Income as a density chart.
+
+```{r, message=FALSE, results='hide'}
+ggplot(women_nyctransport2018,
+       aes(x = PINCP)) +
+  geom_density(fill = "#c296e8",
+               color = "#5d14e5", 
+               alpha = 0.5) +
+  scale_x_continuous(name = "Income (dollars)",
+                     label = comma,
+                     limits = c(0, 1000000)) +
+  theme_classic()
+```
+
+This plot taught me how to select HTML colors - I'll remember this for next time. This plot is very simple.
+
+### Figure 10 Plot
+
+Plotting travel time to work and income.
+
+```{r, message=FALSE, results='hide'}
+ggplot(women_nyctransport2018,
+       aes(x = JWMNP,
+           y = PINCP)) +
+  geom_point() +
+  geom_segment(aes(x = JWMNP, xend = 150, y = 0, yend = 1000000)) +
+  scale_x_continuous(name = "Travel Time to Work (minutes)") +
+  scale_y_continuous(name = "Income (dollars)") +
+  
+  coord_flip() +
+  theme_minimal()
+```
+
+This plot is a lot more difficult to read - I don't think I'd plot these variables against one another in the future.
+
+## Assignment 1 Conclusion
+
+I had fun experimenting with this assignment. I know that I still have a lot to learn in R when it comes to both cleaning data and tweaking aspects of the visualized plots (such as color, theme, position, etc.), but with this exercise, I feel comfortable with having at least a basic understanding of how to plot variables. If plotting variables were to come up in a later assignment, I'd be comfortable with at least creating the plot, and would then further experiment with tweaking aspects of the plot in order to make the data more legible, but not as a means of attempting to manipulate the data.
+
+In general, I found that color and shape were the most difficult visual features of my plots to interpret. In the future, I'll attempt to create graphics which rely more on position and relative size, since these are more intuitive to understand at a glance.

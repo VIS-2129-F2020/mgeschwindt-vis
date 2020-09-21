@@ -1,0 +1,211 @@
+---
+title: "Assignment_2_Maps"
+author: "Mary Geschwindt"
+date: "9/18/2020"
+output:
+  html_document:
+    theme: paper
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment Setup
+
+First I will load my libraries.
+
+```{r load libraries, message=FALSE, results='hide', warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggspatial)
+library(cartogram)
+library(ggthemes)
+```
+
+## Maps
+
+### World Map
+
+I'll start with a world map:
+
+```{r world map, message=FALSE, results='hide'}
+world <- ne_countries(scale = 50, returnclass = "sf")
+
+world_map <- ggplot(world) +
+  geom_sf(color = "black", fill = "lavender") +
+  theme_map()
+
+world_map
+```
+
+
+### European Countries Map
+
+I want to look at countries in Europe as my subareas for this assignment, so I will create an initial map without defining any projections or coordinate systems to see what this looks like.
+
+```{r Europe map, message=FALSE, results='hide'}
+eu_countries <- world %>%
+  filter(continent == "Europe")
+
+eu_map <- ggplot(eu_countries) +
+  geom_sf(color = "black", fill = "turquoise") +
+  theme_map()
+
+eu_map
+```
+
+## Map Projections
+
+Now that I know how to create a map, I will officially begin the assignment. I'll be using countries in Europe as my selected subareas.
+
+I will define four projections I'm using here, which I got from spatialreference.org. The purpose of the first three projections is to experiment with visualizing different distortions for this assignment. The purpose of the fourth projection is to use it for the latter three figures in this assignment.
+
+```{r map projections, message=FALSE, results='hide'}
+eu_coord1 <- "+proj=laea +lat_0=55 +lon_0=20 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"
+eu_coord2 <- "+proj=tmerc +lat_0=0 +lon_0=0 +k=0.9996 +x_0=500000 +y_0=0 +ellps=intl +units=m +no_defs"
+eu_coord3 <- "+proj=longlat +ellps=GRS80 +towgs84=0.0,0.0,0.0,0.0,0.0,0.0,0.0 +no_defs"
+```
+
+
+### Map Projection 1
+
+I'll transform the European countries map using the first projection, which is a Lambert Azimuthal Equal-Area projection from spatialreference.org/ref/esri/9059 :
+
+```{r message=FALSE, results='hide'}
+ggplot(eu_countries) +
+  geom_sf(color = "black", fill = "orange") +
+  coord_sf(crs = eu_coord1) +
+  xlab("Longitude") + ylab("Latitude") +
+  ggtitle("Map of Europe") +
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "bl", which_north = "true", pad_x = unit(0.25, "in"), pad_y = unit(0.25, "in"), style = north_arrow_fancy_orienteering) +
+  theme_bw()
+```
+
+
+### Map Projection 2
+
+I'll transform the European countries map using the second projection, which is a Transverse Mercator projection from spatialreference.org/ref/epsg/23090 :
+
+```{r message=FALSE, results='hide'}
+ggplot(eu_countries) +
+  geom_sf(color = "black", fill = "pink") +
+  coord_sf(crs = eu_coord2) +
+  xlab("Longitude") + ylab("Latitude") +
+  ggtitle("Map of Europe") +
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "bl", which_north = "true", pad_x = unit(0.25, "in"), pad_y = unit(0.25, "in"), style = north_arrow_fancy_orienteering) +
+  theme_bw()
+```
+
+
+### Map Projection 3
+
+I'll transform the European countries map using the third projection, which uses a latitude/longitude coordinate reference system from spatialreference.org/ref/epsg/62586413 :
+
+```{r message=FALSE, results='hide'}
+ggplot(eu_countries) +
+  geom_sf(color = "black", fill = "lightblue") +
+  coord_sf(crs = eu_coord3, xlim = c(-40, 100), ylim = c(30, 85), expand = FALSE) +
+  xlab("Longitude") + ylab("Latitude") +
+  ggtitle("Map of Europe") +
+  annotation_scale(location = "bl", pad_x = unit(4, "in"), pad_y = unit(0.25, "in")) +
+  annotation_north_arrow(location = "bl", which_north = "true", pad_x = unit(4.25, "in"), pad_y = unit(0.5, "in"), style = north_arrow_fancy_orienteering) +
+  theme_bw()
+```
+
+
+## Variables & Figures
+
+I will now select a variable to study how it varies among the countries of Europe. I have chosen to look at each country's population.
+
+### Transformed Projection
+
+For some of the following figures, I know that I want to use a projection which allows me to reference areas. I'll use the Lambert Azimuthal Equal-Area projection from my first map, which I had labeled "eu_coord1".
+
+```{r message=FALSE, results='hide'}
+eu_transformed <- eu_countries %>%
+  st_transform(crs = eu_coord1)
+```
+
+
+### Figure 1 - Chloropleth Map
+
+For my first figure, I'll create a chloropleth map. I'll be using the third projection I created for this assignment.
+
+```{r message=FALSE, results='hide'}
+eu_pop <- eu_countries %>%
+  select(name, pop_est)
+
+ggplot(eu_pop, aes(fill = pop_est)) +
+  geom_sf(color = NA) +
+  coord_sf(crs = eu_coord3, xlim = c(-40, 100), ylim = c(30, 85), expand = FALSE) +
+  scale_fill_viridis_c(option = "plasma",
+                       name = "Estimated\nCountry\nPopulation",
+                       breaks = seq(100000, 1000000, by = 10000),
+                       labels = formatC(seq(100000, 1000000, by = 10000),
+                                        big.mark = ",", format = "f", digits = 0)) +
+  xlab("Longitude") + ylab("Latitude") +
+  ggtitle("Estimated Populations of Countries in Europe") +
+  annotation_scale(location = "bl", pad_x = unit(4, "in"), pad_y = unit(0.25, "in")) +
+  annotation_north_arrow(location = "bl", which_north = "true", pad_x = unit(4.25, "in"), pad_y = unit(0.5, "in"), style = north_arrow_fancy_orienteering) +
+  theme_bw() +
+  theme(legend.background = element_blank())
+```
+
+
+### Figure 2 - Non-Continuous Cartogram
+
+For my second figure, I'll create a non-continuous cartogram. I'll use the transformed projection I created earlier for this figure.
+
+```{r message=FALSE, results="hide"}
+eu_cartogram <- eu_transformed %>%
+  cartogram_ncont("pop_est")
+
+ggplot(eu_cartogram, aes(fill = pop_est)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_c(option = "plasma",
+                       name = "Estimated Populations for Countries in Europe",
+                       breaks = seq(500000, 2000000, by = 500000),
+                       labels = formatC(seq(500000, 2000000, by = 500000),
+                                        big.mark = ",", format = "f", digits = 0)) +
+  theme_map() +
+  theme(legend.background = element_blank())
+```
+
+
+
+### FIgure 3 - Dorling Cartogram
+
+For my final figure, I'll create a dorling cartogram. I'll use the transformed projection I created earlier for this figure.
+
+```{r message=FALSE, results='hide'}
+eu_cartogram_dorling <- eu_transformed %>%
+  cartogram_dorling("pop_est")
+
+ggplot(eu_cartogram_dorling, aes(fill = pop_est)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_c(option = "plasma",
+                       name = "Estimated\nCountry\nPopulation",
+                       breaks = seq(100000, 2000000, by = 100000),
+                       labels = formatC(seq(100000, 2000000, by = 100000),
+                                        big.mark = ",", format = "f", digits = 0)) +
+  ggtitle("Estimated Populations of Countries in Europe") +
+  theme_map() +
+  theme(legend.background = element_blank())
+```
+
+
+## Assignment 2 Conclusion
+
+I am now familiar with creating maps, assigning labels and colors, applying appropriate scales, and most importantly, controlling projections. I can see now how the control over map projections, because there are many types of projections, can change the way the map and the information presented are perceived.
+
+As for creating various figures based on these maps, I can start to see how such figures can be a more abstract means of representing location based data. It allows the viewer to perceive information in a new and interesting way. After completing this exercise, I understand the principle that maps are merely a representation of reality and cannot accurately reflect the true geography of the earth, and that creating such abstract figures is just another means of representing geospatial data.

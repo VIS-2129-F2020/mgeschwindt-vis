@@ -1,5 +1,5 @@
 ---
-title: "Assignment_2_Maps"
+title: "Assignment 2 Maps"
 author: "Mary Geschwindt"
 date: "9/18/2020"
 output:
@@ -66,7 +66,7 @@ eu_map
 
 Now that I know how to create a map, I will officially begin the assignment. I'll be using countries in Europe as my selected subareas.
 
-I will define four projections I'm using here, which I got from spatialreference.org. The purpose of the first three projections is to experiment with visualizing different distortions for this assignment. The purpose of the fourth projection is to use it for the latter three figures in this assignment.
+I will define three projections I'm using here, which I got from spatialreference.org. In order, the projections are a Lambert Azimuthal Equal-Area Projection, a Transverse Mercator Projection, and a longitude/latitude coordinate reference system.
 
 ```{r map projections, message=FALSE, results='hide'}
 eu_coord1 <- "+proj=laea +lat_0=55 +lon_0=20 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"

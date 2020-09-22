@@ -150,8 +150,8 @@ ggplot(eu_pop, aes(fill = pop_est)) +
   coord_sf(crs = eu_coord3, xlim = c(-40, 100), ylim = c(30, 85), expand = FALSE) +
   scale_fill_viridis_c(option = "plasma",
                        name = "Estimated\nCountry\nPopulation",
-                       breaks = seq(100000, 1000000, by = 10000),
-                       labels = formatC(seq(100000, 1000000, by = 10000),
+                       breaks = seq(0, 150000000, by = 30000000),
+                       labels = formatC(seq(0, 150000000, by = 30000000),
                                         big.mark = ",", format = "f", digits = 0)) +
   xlab("Longitude") + ylab("Latitude") +
   ggtitle("Estimated Populations of Countries in Europe") +
@@ -172,16 +172,17 @@ eu_cartogram <- eu_transformed %>%
 
 ggplot(eu_cartogram, aes(fill = pop_est)) +
   geom_sf(color = NA) +
+  ggtitle("Estimated Populations of Countries in Europe") +
   scale_fill_viridis_c(option = "plasma",
-                       name = "Estimated Populations for Countries in Europe",
-                       breaks = seq(500000, 2000000, by = 500000),
-                       labels = formatC(seq(500000, 2000000, by = 500000),
+                       name = "Estimated\n Country\n Population",
+                       breaks = seq(0, 150000000, by = 30000000),
+                       labels = formatC(seq(0, 150000000, by = 30000000),
                                         big.mark = ",", format = "f", digits = 0)) +
   theme_map() +
   theme(legend.background = element_blank())
 ```
 
-
+In another iteration of this non-continuous cartogram, I would manually filter out several of the overseas locations which are territories of some of these European countries, but which are not a part of the continent of Europe that I want to look at for this assignment. These territories are causing the scale of the map to be small. In the future I would test how to separate these territories out, as they do not appear as separate rows in the table I created earlier showing European countries.
 
 ### FIgure 3 - Dorling Cartogram
 
@@ -195,17 +196,22 @@ ggplot(eu_cartogram_dorling, aes(fill = pop_est)) +
   geom_sf(color = NA) +
   scale_fill_viridis_c(option = "plasma",
                        name = "Estimated\nCountry\nPopulation",
-                       breaks = seq(100000, 2000000, by = 100000),
-                       labels = formatC(seq(100000, 2000000, by = 100000),
+                       breaks = seq(0, 150000000, by = 30000000),
+                       labels = formatC(seq(0, 150000000, by = 30000000),
                                         big.mark = ",", format = "f", digits = 0)) +
   ggtitle("Estimated Populations of Countries in Europe") +
+  geom_sf_text(aes(label = name),
+                #color = "white",
+                size = 2) +
   theme_map() +
-  theme(legend.background = element_blank())
+  theme(legend.background = element_blank()) +
+  theme(legend.position = "left")
 ```
 
+In another iteration of this dorling cartogram, I would adjust the labels of the country names to be as legible as possible. I think that labels are important in such a map because the location of European countries relative to one another in such an abstract representation may not be as obvious to an audience, depending on who that audience is.
 
 ## Assignment 2 Conclusion
 
-I am now familiar with creating maps, assigning labels and colors, applying appropriate scales, and most importantly, controlling projections. I can see now how the control over map projections, because there are many types of projections, can change the way the map and the information presented are perceived.
+I am now familiar with creating maps, assigning labels and colors, applying appropriate scales, and most importantly, controlling projections. I can see now how the control over map projections, because there are so many types of distortions which can be produced, can change the way the map and the information presented are perceived.
 
-As for creating various figures based on these maps, I can start to see how such figures can be a more abstract means of representing location based data. It allows the viewer to perceive information in a new and interesting way. After completing this exercise, I understand the principle that maps are merely a representation of reality and cannot accurately reflect the true geography of the earth, and that creating such abstract figures is just another means of representing geospatial data.
+As for creating various figures based on these maps, I can start to see how such figures can be a more abstract means of representing location based data. After completing this exercise, I understand the principle that maps are merely a representation of reality and cannot accurately reflect the true geography of the earth, and that creating such abstract figures is just another means of representing geospatial data. One still needs to be careful of what message the distortions send to the audience, and whether or not the distortions produce something which is accurate, honest, and useful.

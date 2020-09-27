@@ -1,0 +1,235 @@
+---
+title: "Assignment3"
+author: "Mary Geschwindt"
+date: "9/23/2020"
+output: 
+  html_document:
+    theme: paper
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First I will load my libraries.
+
+```{r message=FALSE}
+library(sf)
+library(tidyverse)
+library(ggthemes)
+library(ggspatial)
+library(units)
+library(nngeo)
+```
+
+## Geospatial Data
+
+### Loading the Data
+
+I have selected polygons and points from Open Data NYC. My spatial data includes:
+
+A. Bicycle parking racks (point)
+B. Parking meters (point)
+C. Neighborhood boundaries (polygon)
+D. Parks (polygon)
+
+```{r message=FALSE}
+nhoods <- st_read("https://data.cityofnewyork.us/api/geospatial/cpf4-rkhq?method=export&format=KML", quiet = TRUE)
+
+parks <- st_read("https://data.cityofnewyork.us/api/geospatial/g84h-jbjm?method=export&format=KML", quiet = TRUE)
+
+bike_parking <- st_read("https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=KML", quiet = TRUE)
+
+parking <- st_read("https://data.cityofnewyork.us/api/geospatial/5jsj-cq4s?method=export&format=KML", quiet = TRUE)
+```
+
+### Transforming the Data
+
+Using a transverse Mercator projection for New York State (NAD 1983) from spatialreference.org/ref/esri/102715, I will now transform my data to this projection.
+
+```{r message=FALSE}
+NY_state_tmerc <- "+proj=tmerc +lat_0=38.83333333333334 +lon_0=-74.5 +k=0.9999 +x_0=150000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
+
+nhoods <- nhoods %>%
+  st_transform(NY_state_tmerc)
+
+parks <- parks %>%
+  st_transform(NY_state_tmerc)
+
+bike_parking <- bike_parking %>%
+  st_transform(NY_state_tmerc)
+
+parking <- parking %>%
+  st_transform(NY_state_tmerc)
+```
+
+I'll create a test map:
+
+```{r message=FALSE, fig.width=8, fig.height=8}
+ggplot(nhoods) +
+  geom_sf(fill = NA, color = "gray") +
+  geom_sf(data = parks, fill = "lightgreen", color = NA) +
+  geom_sf(data = parking, size = 0.01) +
+  geom_sf(data = bike_parking, color = "blue") +
+  annotation_scale(bar_cols = c("black", "white"), line_width = 1) +
+  theme_map()
+```
+
+## Calculations
+
+### Calculation 1
+
+I'm calculating the number and proportion of A points (bicycle parking racks) within C polygons (neighborhoods).
+
+```{r fig.width=8, fig.height=8}
+nhoods <- nhoods %>%
+  mutate(num_racks = lengths(st_covers(nhoods, bike_parking)))
+
+ggplot(nhoods) +
+  geom_sf(color = NA,
+          aes(fill = num_racks)) +
+  scale_fill_viridis_c(name = "New York City\nNeighborhoods by Number of Bike Racks",
+                       breaks = breaks <- seq(0, 1200, by = 100),
+                       labels = paste(prettyNum(breaks, big.mark = ","),
+                                      "bike racks")) +
+  annotation_scale(location = "br") +
+  annotation_north_arrow(location = "tr",
+                         style = north_arrow_minimal()) +
+  labs(title = "Bicycle Parking in NYC Neighborhoods") +
+  theme_map() +
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+```
+
+
+### Calculation 2
+
+I'm calculating the number and proportion of B points (parking meters) within C polygons (neighborhoods).
+
+```{r fig.width=8, fig.height=8}
+nhoods <- nhoods %>%
+  mutate(num_meters = lengths(st_covers(nhoods, parking)))
+
+ggplot(nhoods) +
+  geom_sf(color = NA,
+          aes(fill = num_meters)) +
+  scale_fill_viridis_c(name = "New York City Neighborhoods\nby Number of Parking Meters",
+                       breaks = breaks <- seq(0, 1000, by = 100),
+                       labels = paste(prettyNum(breaks, big.mark = ","),
+                                      "parking meters")) +
+  annotation_scale(location = "br") +
+  annotation_north_arrow(location = "tr",
+                         style = north_arrow_minimal()) +
+  labs(title = "Parking Meters in NYC Neighborhoods") +
+  theme_map() +
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+
+```
+
+### Calculation 3
+
+I'll calculate the number and proportion of D polygons (parks) containing A points (bicycle parking racks).
+
+```{r fig.width=8, fig.height=8}
+parks <- parks %>%
+  mutate(num_parks = lengths(st_covers(parks, bike_parking)))
+
+ggplot(parks) +
+  geom_sf(color = NA,
+          aes(fill = num_parks)) +
+  scale_fill_viridis_c(name = "New York City Parks\nby Bicycle Parking Racks",
+                       breaks = breaks <- seq(0, 25, by = 5),
+                       labels = paste(prettyNum(breaks, big.mark = ","),
+                                      "parks")) +
+  annotation_scale(location = "br") +
+  annotation_north_arrow(location = "tr",
+                         style = north_arrow_minimal()) +
+  labs(title = "NYC Parks Containing Bicycle Parking Racks") +
+  theme_map() +
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+```
+
+### Calculation 4
+
+I'll calculate the number and proportion of D polygons (parks) which overlap with C polygons (neighborhoods).
+
+```{r}
+nhoods <- nhoods %>%
+  mutate(num_parks = lengths(st_overlaps(nhoods, parks))) %>%
+  mutate(has_parks = num_parks > 0)
+
+n_parks_nhoods <- sum(nhoods$has_parks)
+
+n_parks_nhoods
+```
+
+```{r fig.width=8, fig.height=8}
+left_side <- st_bbox(parks)$xmin
+top_side <- st_bbox(parks)$ymax
+
+ggplot(parks) +
+  geom_sf(fill = "lightgreen", color = NA) +
+  geom_sf(data = nhoods,
+          aes(fill = has_parks)) +
+  scale_fill_manual(values = c("gray", "lightgreen"),
+                    name = "NYC Neighborhoods\nby Presence of Parks",
+                    labels = c("Neighborhoods without an\nOverlapping Park", "Neighborhoods with an\nOverlapping Park")) +
+  annotation_scale(location = "br") +
+  annotation_north_arrow(location = "tr",
+                         style = north_arrow_minimal()) +
+  annotate(geom = "text", x = left_side,
+           y = top_side,
+           label = paste(n_parks_nhoods,
+                        "of NYC's",
+                        length(nhoods$Name),
+                        "Neighborhoods contain\nor overlap with",
+                        "a park."),
+           hjust = 0, vjust = 0, size = 3) +
+   theme_map() +
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+
+```
+
+
+### Calculation 5
+
+I'll calculate the average density of B points (parking meters) in each C polygon (neighborhoods).
+
+```{r fig.width=8, fig.height=8}
+nhoods <- nhoods %>%
+  mutate(area = set_units(st_area(nhoods), km^2)) %>%
+  mutate(meters_dens = as.numeric(num_meters / area))
+
+ggplot(nhoods) +
+  geom_sf(color = NA,
+          aes(fill = meters_dens)) +
+  scale_fill_viridis_c(name = 
+                         "NYC Neighborhoods\nby Parking Meter Density",
+                       breaks = breaks <- seq(0, 300, by = 50),
+                       labels = paste(prettyNum(breaks, big.mark = ","),
+                                      "parking meters per square km")) +
+  annotation_scale(location = "br") +
+  annotation_north_arrow(location = "tr",
+                         style = north_arrow_minimal()) +
+  labs(title = "Density of Parking Meters in NYC Neighborhoods") +
+  theme_map() +
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+```
+
+
+### Calculation 6
+
+I'll calculate the average distance between A points (bicycle parking racks) and their nearest respective B points (parking meters).
+
+```{r}
+#bike_parking <- bike_parking %>%
+ # mutate(pmeter_dist = st_nn(bike_parking, parking,
+  #                          returnDist = TRUE)$dist) %>%
+  #mutate(pmeter_dist = as.numeric(pmeter_dist))
+```
+
+## Assignment Conclusion
+
+Assignment 3 has helped me to visualize geospatial data - creating these maps was a simple and straightforward process. After going through the steps for gathering geospatial data as points and polygons, transforming the data geometry to a projection, creating calculations for each geomtry's relationship to another geomtry, and visualizing these relationships, I understand how this can be applied to more specific work as an urban planner. I'll make use of this same process with my studio assignments when I want to analyze the data I've collected.

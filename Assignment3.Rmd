@@ -1,5 +1,5 @@
 ---
-title: "Assignment3"
+title: "Assignment 3"
 author: "Mary Geschwindt"
 date: "9/23/2020"
 output: 
@@ -34,12 +34,12 @@ I have selected polygons and points from Open Data NYC. My spatial data includes
 A. Bicycle parking racks (point)
 B. Parking meters (point)
 C. Neighborhood boundaries (polygon)
-D. Parks (polygon)
+D. Parks managed in full or in part by NYC Parks (polygon)
 
 ```{r message=FALSE}
 nhoods <- st_read("https://data.cityofnewyork.us/api/geospatial/cpf4-rkhq?method=export&format=KML", quiet = TRUE)
 
-parks <- st_read("https://data.cityofnewyork.us/api/geospatial/g84h-jbjm?method=export&format=KML", quiet = TRUE)
+parks <- st_read("https://data.cityofnewyork.us/api/geospatial/enfh-gkve?method=export&format=KML", quiet = TRUE)
 
 bike_parking <- st_read("https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=KML", quiet = TRUE)
 
@@ -48,10 +48,10 @@ parking <- st_read("https://data.cityofnewyork.us/api/geospatial/5jsj-cq4s?metho
 
 ### Transforming the Data
 
-Using a transverse Mercator projection for New York State (NAD 1983) from spatialreference.org/ref/esri/102715, I will now transform my data to this projection.
+Using a transverse Mercator projection from spatialreference.org/ref/esri/102315, I will now transform my data to this projection.
 
 ```{r message=FALSE}
-NY_state_tmerc <- "+proj=tmerc +lat_0=38.83333333333334 +lon_0=-74.5 +k=0.9999 +x_0=150000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs"
+NY_state_tmerc <- "+proj=tmerc +lat_0=38.83333333333334 +lon_0=-74.5 +k=0.9999 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs"
 
 nhoods <- nhoods %>%
   st_transform(NY_state_tmerc)
@@ -100,7 +100,8 @@ ggplot(nhoods) +
                          style = north_arrow_minimal()) +
   labs(title = "Bicycle Parking in NYC Neighborhoods") +
   theme_map() +
-    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"),
+          legend.position = c(0.1,0.75))
 ```
 
 
@@ -124,7 +125,8 @@ ggplot(nhoods) +
                          style = north_arrow_minimal()) +
   labs(title = "Parking Meters in NYC Neighborhoods") +
   theme_map() +
-    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"),
+          legend.position = c(0.1,0.75))
 
 ```
 
@@ -140,7 +142,7 @@ ggplot(parks) +
   geom_sf(color = NA,
           aes(fill = num_parks)) +
   scale_fill_viridis_c(name = "New York City Parks\nby Bicycle Parking Racks",
-                       breaks = breaks <- seq(0, 25, by = 5),
+                       breaks = breaks <- seq(0, 200, by = 50),
                        labels = paste(prettyNum(breaks, big.mark = ","),
                                       "parks")) +
   annotation_scale(location = "br") +
@@ -148,7 +150,8 @@ ggplot(parks) +
                          style = north_arrow_minimal()) +
   labs(title = "NYC Parks Containing Bicycle Parking Racks") +
   theme_map() +
-    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"),
+          legend.position = c(0.1,0.75))
 ```
 
 ### Calculation 4
@@ -185,10 +188,11 @@ ggplot(parks) +
                         "of NYC's",
                         length(nhoods$Name),
                         "Neighborhoods contain\nor overlap with",
-                        "a park."),
+                        "a park managed by NYC Parks."),
            hjust = 0, vjust = 0, size = 3) +
    theme_map() +
-    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"),
+          legend.position = c(0.1,0.75))
 
 ```
 
@@ -215,7 +219,8 @@ ggplot(nhoods) +
                          style = north_arrow_minimal()) +
   labs(title = "Density of Parking Meters in NYC Neighborhoods") +
   theme_map() +
-    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"))
+    theme(legend.background = element_rect(fill=alpha("white", 0.5), color = "gray"),
+          legend.position = c(0.1,0.75))
 ```
 
 
@@ -223,13 +228,59 @@ ggplot(nhoods) +
 
 I'll calculate the average distance between A points (bicycle parking racks) and their nearest respective B points (parking meters).
 
-```{r}
-#bike_parking <- bike_parking %>%
- # mutate(pmeter_dist = st_nn(bike_parking, parking,
-  #                          returnDist = TRUE)$dist) %>%
-  #mutate(pmeter_dist = as.numeric(pmeter_dist))
+Here I'll get the distances:
+
+```{r message=FALSE}
+bike_parking <- bike_parking %>%
+  filter(!is.na(st_dimension(bike_parking)))
+
+
+bike_parking <- bike_parking %>%
+  mutate(pmeter_dist = st_nn(bike_parking, parking,
+                            returnDist = TRUE)$dist) %>%
+  mutate(pmeter_dist = as.numeric(pmeter_dist))
 ```
+
+And now I'll calculate the average distance from bicycle parking racks and their nearest parking meter.
+
+```{r}
+avg_pmeter_dist <- mean(bike_parking$pmeter_dist)
+
+avg_pmeter_dist
+```
+
+Now I will create a map to represent these distances:
+
+```{r fig.width=8, fig.height=8}
+right_side <- st_bbox(bike_parking)$xmax
+left_side <- st_bbox(bike_parking)$xmin
+top_side <- st_bbox(bike_parking)$ymax
+bottom_side <- st_bbox(bike_parking)$ymin
+
+ggplot(nhoods) +
+  geom_sf(fill = NA, color = "lavender") +
+  geom_sf(data = bike_parking, size = 0.1,
+          aes(color = pmeter_dist)) +
+  coord_sf(xlim = c(left_side, right_side),
+           ylim = c(bottom_side, top_side), expand=FALSE) +
+  scale_color_viridis_c(name = "NYC Bicycle Parking Racks\nby Distance to\na Parking Meter") +
+  annotation_scale(location = "br") +
+  annotation_north_arrow(location = "tr",
+                         style = north_arrow_minimal()) +
+  annotate(geom = "text", x = left_side + 500,
+           y = top_side - 800,
+           label = paste("On average a bike parking rack is ",
+                         prettyNum(avg_pmeter_dist, digits = 3),
+                         " meters from a parking meter in NYC.",
+                         sep = ""),
+           hjust = 0, vjust = 0, size = 3) +
+  theme_map() +
+  theme(legend.position = c(0.1,0.6))
+```
+
 
 ## Assignment Conclusion
 
-Assignment 3 has helped me to visualize geospatial data - creating these maps was a simple and straightforward process. After going through the steps for gathering geospatial data as points and polygons, transforming the data geometry to a projection, creating calculations for each geomtry's relationship to another geomtry, and visualizing these relationships, I understand how this can be applied to more specific work as an urban planner. I'll make use of this same process with my studio assignments when I want to analyze the data I've collected.
+Assignment 3 has helped me to visualize geospatial data - creating these maps was a simple and straightforward process. After going through the steps for gathering geospatial data as points and polygons, transforming the data geometry to a projection, creating calculations for each geometry's relationship to another geometry, and visualizing these relationships, I understand how this can be applied to more specific work as an urban planner. I'll make use of this same process with my studio assignments when I want to analyze the data I've collected.
+
+Another takeaway from this assignment is in having an understanding of who created the data and how the data is defined in the metadata. Knowing the source of the data can be related to an organization's motivations, and those motivations could cause important pieces of the data to be overlooked or left out of the dataset. I've also learned to be as clear as possible in presenting my maps and defining what is being presented. For example, when I presented my maps in class, there was confusion about park access based on my classmate's real experiences of where parks are in their neighborhoods. I went back to my source and learned that the data I was using was only for the NYC Parks department, which leaves out many playgrounds, parks, plazas, and open spaces which may be operated by another entity. I also learned that it's important to consider people's real experiences in conjunction with the presentation of the maps.

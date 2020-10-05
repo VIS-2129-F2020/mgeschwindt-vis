@@ -1,0 +1,73 @@
+---
+title: "Assignment3"
+author: "Mary Geschwindt"
+date: "9/23/2020"
+output: 
+  html_document:
+    theme: paper
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First I will load my libraries.
+
+```{r message=FALSE}
+library(sf)
+library(tidyverse)
+library(ggthemes)
+```
+
+## Geospatial Data
+
+### Loading the Data
+
+I have selected polygons and points from Open Data NYC. My spatial data includes:
+
+A. Neighborhood boundaries (polygon)
+B. Parks (polygon)
+C. Bicycle parking spots/stations (point)
+D. Parking meters (point)
+
+```{r message=FALSE}
+nhoods <- st_read("https://data.cityofnewyork.us/api/geospatial/cpf4-rkhq?method=export&format=KML", quiet = TRUE)
+
+parks <- st_read("https://data.cityofnewyork.us/api/geospatial/g84h-jbjm?method=export&format=KML", quiet = TRUE)
+
+bike_parking <- st_read("https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=KML", quiet = TRUE)
+
+parking <- st_read("https://data.cityofnewyork.us/api/geospatial/5jsj-cq4s?method=export&format=KML", quiet = TRUE)
+```
+
+### Transforming the Data
+
+Using a transverse Mercator projection (from NAD27) from spatialreference.org, I will now transform my data to this projection.
+
+```{r message=FALSE}
+NY_state_tmerc <- "+proj=tmerc +lat_0=40 +lon_0=-74.33333333333333 +k=0.999966667 +x_0=152400.3048006096 +y_0=0 +ellps=clrk66 +datum=NAD27 +to_meter=0.3048006096012192 +no_defs"
+
+nhoods <- nhoods %>%
+  st_transform(NY_state_tmerc)
+
+parks <- parks %>%
+  st_transform(NY_state_tmerc)
+
+bike_parking <- bike_parking %>%
+  st_transform(NY_state_tmerc)
+
+parking <- parking %>%
+  st_transform(NY_state_tmerc)
+```
+
+I'll create a test map:
+
+```{r message=FALSE}
+ggplot(nhoods) +
+  geom_sf(fill = NA, color = "gray") +
+  geom_sf(data = )
+```
+

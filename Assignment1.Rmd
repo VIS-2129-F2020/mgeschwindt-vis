@@ -3,7 +3,7 @@ title: "Assignment1"
 author: "Mary Geschwindt"
 date: "9/10/2020"
 output:
-  html_document:
+  html_document: 
     toc: true
     toc_depth: 3
     toc_float: true
@@ -20,7 +20,6 @@ library(tidycensus)
 library(tidyverse)
 library(ggplot2)
 library(ggthemes)
-library(prettydoc)
 library(scales)
 ```
 

@@ -26,6 +26,8 @@ library(sf)
 library(ggthemes)
 library(ggspatial)
 library(dplyr)
+library(plyr)
+library(wesanderson)
 ```
 
 ### Topic and Data
@@ -88,7 +90,7 @@ otpcon <- otp_connect()
 
 ## Figure 1: Isochrone Visualization
 
-Now that I have my data, geography, and OTP setup, I will create an isochrone depicting the 10 minute walkshed and bikeshed around each NYC museum I selected. I'll create several isochrones to test out various aesthetics, but each will depict the same walksheds and bikesheds.
+Now that I have my data, geography, and OTP setup, I will create an isochrone depicting the 10 minute walkshed and bikeshed around each NYC museum I selected. I'll create several isochrones to test out various aesthetics, but each will depict the same walksheds and bikesheds. I want to give credit to Cristina Davila Gonzalez and her work on Assignment 1 for helping me to learn how to use different color palettes in my figures, which I have learned how to use for this assignment.
 
 ```{r message=FALSE}
 iso_10min_walk <- 
@@ -122,9 +124,9 @@ ggplot(iso_all_modes) +
   geom_sf(data = NYC_museums, aes()) +
   coord_sf(xlim = c(left_side, right_side), 
            ylim = c(bottom_side, top_side), expand = FALSE) +
-  scale_fill_discrete(name = "Area that is reachable within 10 minutes",
-                       labels = c("By bike", "By foot"),
-                       type = c("aquamarine1", "slateblue1" )) +
+  scale_fill_manual(name = "Area that is reachable within 10 minutes",
+                    values = wes_palette("FantasticFox1", n=2),
+                       labels = c("By bike", "By foot")) +
   theme_map() +
     theme(legend.background = element_rect(fill = alpha("white", 0.5), color = "black"),
           legend.position = c(0.08, 0.75),
@@ -141,9 +143,9 @@ ggplot(iso_all_modes) +
   geom_sf(data = NYC_museums) +
   coord_sf(xlim = c(left_side, right_side), 
            ylim = c(bottom_side, top_side), expand = FALSE) +
-  scale_fill_discrete(name = "Area that is reachable within 10 minutes",
-                       labels = c("By bike", "By foot"),
-                       type = c("olivedrab2", "royalblue2")) +
+  scale_fill_manual(name = "Area that is reachable within 10 minutes",
+                    values = wes_palette("Moonrise3", n=2),
+                       labels = c("By bike", "By foot")) +
   theme_map() +
       theme(legend.background = element_rect(fill = alpha("white", 0.9), color = "black"),
           legend.position = c(0.08, 0.75),
@@ -160,9 +162,9 @@ ggplot(iso_all_modes) +
   geom_sf(data = NYC_museums) +
   coord_sf(xlim = c(left_side, right_side), 
            ylim = c(bottom_side, top_side), expand = FALSE) +
-  scale_fill_discrete(name = "Area that is reachable within 10 minutes",
-                       labels = c("By bike", "By foot"),
-                       type = c("gold", "darkorchid")) +
+  scale_fill_manual(name = "Area that is reachable within 10 minutes",
+                    values = wes_palette("GrandBudapest2", n = 2),
+                    labels = c("By bike", "By foot")) +
 
   theme_map() +
     theme(legend.background = element_rect(fill = alpha("white", 0.9), color = "black"),
@@ -189,30 +191,63 @@ ggplot(iso_areas,
   stat_smooth(method = "lm") +
   scale_x_continuous(name = 
             "Area within a ten-minute walking distance\nof a museum\n(square km)",
-            breaks = breaks <- seq(10000, 130000, by = 20000),
+            breaks = breaks <- seq(10000, 8000000, by = 100000),
             labels = breaks / 1000000) +
   scale_y_continuous(name = 
             "Area within a ten-minute biking distance\nof a museum\n(square km)",
-            breaks = breaks <- seq(0, 700000, by = 100000),
+            breaks = breaks <- seq(0, 8000000, by = 1000000),
             labels = breaks / 1000000) +
   theme_bw()
 ```
 
-### Figure 3: Bubble Chart
+### Figure 3: Bar Chart
 
-I want to answer the question: how much greater is the area that a 10 minute bike ride can cover than the area that is covered by a 10 minute walk to a museum? I will create a figure which uses scale and geometry to compare the sizes of these 2 areas.
-
-```{r message=FALSE}
-
-```
-
-
-### Figure 4: Bar Chart
-
-I will create a bar chart which compares the area covered by a 10 minute bike ride and a 10 minute walk for each museum. My x-axis will be the area, and my y-axis will be the museums.
+I want to know how much larger of an area around a museum is covered by a 10 minute bike ride as compared to a 10 minute walk. I will create a bar chart which compares the area covered by a 10 minute bike ride and a 10 minute walk for each museum. My x-axis will be the area, and my y-axis will be the museums. In order to show this comparison between 2 modes of transportation on the same bar chart, I'll have to create a new dataframe.
 
 ```{r message=FALSE}
+iso_areas_2 <- data.frame(mode = rep(c("Bicycle", "Walk"), each = 14),
+                          museum =rep(c("American Museum of Natural History",
+                              "Cloisters",
+                              "New Museum of Contemporary Art",
+                              "Skyscraper Museum",
+                              "Whitney Museum of American Art",
+                              "Cooper-Hewitt, National Design Museum",
+                              "Fraunces Tavern Museum",
+                              "Frick Collection",
+                              "Metropolitan Museum of Art (MET)",
+                              "Morgan Library and Museum",
+                              "Museum of Modern Art (MoMA)",
+                              "Museum of the City of New York",
+                              "Solomon R. Guggenheim Museum",
+                              "Studio Museum in Harlem")),
+                          area = c(5776098, 3156259, 6032629, 3267062, 6203797, 4772197, 6322727, 5462318, 6303734, 7880639, 1846491, 6549625, 6495606, 5888841, 616861.7, 401077.9, 620392.3, 608556.3, 657121.6, 436404.3, 605569.3, 468155.2, 741954.8, 785867.6, 327229.0, 668817.6, 753486.9, 700258.6))
 
+ggplot(iso_areas_2,
+       aes(x = as.numeric(area), y = museum), fill = mode) +
+  geom_bar(stat = "identity", width = 0.5, position = "dodge") +
+  scale_x_continuous(name = "Area Covered (km^2)",
+                     breaks = breaks <- seq(10000, 8000000, by = 1000000),
+                     labels = breaks / 1000000) +
+  scale_y_discrete(name = "Museums",
+                   labels = c("American Museum of Natural History",
+                              "Cloisters",
+                              "New Museum of Contemporary Art",
+                              "Skyscraper Museum",
+                              "Whitney Museum of American Art",
+                              "Cooper-Hewitt, National Design Museum",
+                              "Fraunces Tavern Museum",
+                              "Frick Collection",
+                              "Metropolitan Museum of Art (MET)",
+                              "Morgan Library and Museum",
+                              "Museum of Modern Art (MoMA)",
+                              "Museum of the City of New York",
+                              "Solomon R. Guggenheim Museum",
+                              "Studio Museum in Harlem")) +
+  scale_fill_manual(name = "Area Covered by Walking and Biking",
+                    values = wes_palette("GrandBudapest2", n = 2),
+                    labels = c("Bicycle",
+                               "Walk")) +
+  theme_minimal()
 ```
 
 ## Assignment Conclusion

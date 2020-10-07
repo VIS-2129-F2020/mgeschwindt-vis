@@ -42,13 +42,13 @@ NYC_museums <- st_read(
 
 ### New York City Geography
 
-```{r message=FALSE, results='hide'}
+```{r}
 opq(bbox = 'New York NY USA') %>%
   add_osm_feature(key = 'highway') %>%
   osmdata_xml(file = 'OTP/graphs/default/newyork_streets.osm')
 ```
 
-```{r message=FALSE, results='hide'}
+```{r}
 NY_state_plane <- "+proj=tmerc +lat_0=38.83333333333334 +lon_0=-74.5 +k=0.9999 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs"
 
 nyc_street_features <- opq(bbox = 'New York NY USA') %>%
@@ -73,7 +73,7 @@ ggplot(nyc_streets) +
 path_otp <- otp_dl_jar("OTP")
 ```
 
-```{r message=FALSE, results='hide'}
+```{r message=FALSE}
 path_data <- file.path(getwd(), "OTP")
 path_otp <- paste(path_data, "otp.jar",sep = "/")
 
@@ -94,7 +94,7 @@ Now that I have my data, geography, and OTP setup, I will create an isochrone de
 
 I want to give credit to my classmate Cristina Davila Gonzalez and her work on Assignment 1 for helping me to learn how to use different color palettes in my figures, which I have learned how to use for this assignment.
 
-```{r message=FALSE, results='hide'}
+```{r message=FALSE}
 iso_10min_walk <- 
   otp_isochrone(otpcon = otpcon, fromPlace = NYC_museums, 
                 mode = "WALK", cutoffSec = 600) %>%

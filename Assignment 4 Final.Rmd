@@ -48,7 +48,7 @@ opq(bbox = 'New York NY USA') %>%
   osmdata_xml(file = 'OTP/graphs/default/newyork_streets.osm')
 ```
 
-```{r message=FALSE, results='hide'}
+```{r assign projection, message=FALSE, results='hide'}
 NY_state_plane <- "+proj=tmerc +lat_0=38.83333333333334 +lon_0=-74.5 +k=0.9999 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs"
 
 nyc_street_features <- opq(bbox = 'New York NY USA') %>%
@@ -61,7 +61,7 @@ nyc_streets <- nyc_street_features$osm_lines %>%
 
 I'll create a test map to make sure the NYC street geometries have been loaded correctly:
 
-```{r fig.height=10, fig.width=10}
+```{r street map test plot, fig.height=10, fig.width=10}
 ggplot(nyc_streets) +
   geom_sf() +
   theme_map()
@@ -69,22 +69,22 @@ ggplot(nyc_streets) +
 
 ### OTP Setup
 
-```{r message=FALSE}
+```{r call otp path, message=FALSE}
 path_otp <- otp_dl_jar("OTP")
 ```
 
-```{r message=FALSE, results='hide'}
+```{r call data, message=FALSE, results='hide'}
 path_data <- file.path(getwd(), "OTP")
 path_otp <- paste(path_data, "otp.jar",sep = "/")
 
 otp_build_graph(otp = path_otp, dir = path_data, memory = 1024) 
 ```
 
-```{r message=FALSE}
+```{r otp setup, message=FALSE}
 otp_setup(otp = path_otp, dir = path_data, memory =1024)
 ```
 
-```{r message=FALSE}
+```{r otp connect, message=FALSE}
 otpcon <- otp_connect()
 ```
 
@@ -94,7 +94,7 @@ Now that I have my data, geography, and OTP setup, I will create an isochrone de
 
 I want to give credit to my classmate Cristina Davila Gonzalez and her work on Assignment 1 for helping me to learn how to use different color palettes in my figures, which I have learned how to use for this assignment.
 
-```{r message=FALSE, results='hide'}
+```{r define isochrones, message=FALSE, results='hide'}
 iso_10min_walk <- 
   otp_isochrone(otpcon = otpcon, fromPlace = NYC_museums, 
                 mode = "WALK", cutoffSec = 600) %>%
@@ -115,7 +115,7 @@ otp_stop()
 
 ### Isochrone 1
 
-```{r fig.height=10, fig.width=10}
+```{r isochrone 1, fig.height=10, fig.width=10}
 right_side <- st_bbox(iso_all_modes)$xmax
 left_side  <- st_bbox(iso_all_modes)$xmin
 top_side <- st_bbox(iso_all_modes)$ymax
@@ -139,7 +139,7 @@ ggplot(iso_all_modes) +
 
 ### Isochrone 2
 
-```{r fig.height=10, fig.width=10}
+```{r isochrone 2, fig.height=10, fig.width=10}
 ggplot(iso_all_modes) +
   annotation_map_tile(zoomin = 0, type = "stamenbw", progress = "none") +
   geom_sf(aes(fill = mode), alpha = 0.5) +
@@ -158,7 +158,7 @@ ggplot(iso_all_modes) +
 
 ### Isochrone 3
 
-```{r fig.height=10, fig.width=10}
+```{r isochrone 3, fig.height=10, fig.width=10}
 ggplot(iso_all_modes) +
   geom_sf(data = nyc_streets, color = "gray") +
   geom_sf(aes(fill = mode), alpha = 0.5) +
@@ -182,7 +182,7 @@ ggplot(iso_all_modes) +
 
 I will create a scatterplot to compare the isochrones showing the 10 minute walkshed vs. bikeshed for the selected museums.
 
-```{r}
+```{r scatterplot, message=FALSE}
 iso_areas <- iso_all_modes %>%
   mutate(area = st_area(iso_all_modes)) %>%
   st_set_geometry(NULL) %>%
@@ -209,7 +209,7 @@ I want to know how much larger of an area around a museum is covered by a 10 min
 
 I will give credit to my classmate Julia Meinhardt for helping me to resolve an issue in my code with showing the colors in the bar chart.
 
-```{r message=FALSE}
+```{r bar chart, message=FALSE}
 iso_areas_2 <- data.frame(mode = rep(c("Bicycle", "Walk"), each = 14),
                           museum =rep(c("American Museum of Natural History",
                               "Cloisters",
@@ -263,7 +263,7 @@ I will create a stacked area chart showing area coverage for walksheds and bikes
 
 NOTE: I was unable to get the areas to plot, but this is something which I would like to continue to work through following this assignment's submission, since this is an extra figure I'm trying to create.
 
-```{r message=FALSE, fig.width=12}
+```{r stacked area chart, message=FALSE, fig.width=12}
 ggplot(iso_areas_2, aes(x = museum, y = as.numeric(area), fill = mode)) +
   geom_area() +
   scale_x_discrete(name = "Museums",
@@ -290,7 +290,7 @@ ggplot(iso_areas_2, aes(x = museum, y = as.numeric(area), fill = mode)) +
   theme_minimal()
 ```
 
-```{r message=FALSE, results='hide'}
+```{r otp stop, message=FALSE, results='hide'}
 otp_stop()
 ```
 

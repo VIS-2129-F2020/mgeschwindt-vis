@@ -14,7 +14,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Loading Libraries
+## Assignment Setup
+
+### Loading Libraries
+
+I'll use the following libraries for this assignment:
 
 ```{r load libraries, message=FALSE}
 library(tidyverse)
@@ -24,11 +28,9 @@ library(htmltools)
 library(htmlwidgets)
 ```
 
-## Loading Data
+### Loading Data: Bicycle Parking Point Data
 
 I'm excited about this exercise, because there is a map I have always wished existed: a map showing all bike parking racks in New York City. I never considered that this would be a map that I could create myself, so I'm looking forward to attempting this.
-
-### Point Data: Bicycle Parking
 
 I will bring in point data for the bicycle parking racks. My data source is the New York City Open Data portal. The dataset includes bicycle parking racks throughout New York City as of May 2019. The dataset alone has 26282 observations of existing bike racks; I will also include a filter to select only the borough of Manhattan for this exercise, which has only 8910 bicycle racks.
 

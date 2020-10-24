@@ -41,22 +41,34 @@ bikeracks <- st_read("https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?met
 
 ## Creating the Interactive Map
 
-For my map, I would like to create points as circles to represent each bicycle parking rack in Manhattan. Each of these circles will also have a label which includes the name of the street on which the bike is located.
+For my map, I would like to create points as circles to represent each bicycle parking rack in Manhattan. Each of these circles will also have a popup label which includes the name of the street on which the bike is located.
 
 ```{r create map, message=FALSE}
-bikeracks_map <- leaflet(bikeracks) %>%
-  addProviderTiles(providers$Thunderforest.OpenCycleMap) %>%
+bikeracks_map <- leaflet(bikeracks,
+                         options = leafletOptions(minZoom = 0.1, maxZoom = 0.8)) %>%
+  addProviderTiles("Stamen.TonerLite") %>%
   addCircles(fillColor = "cyan", color = "cyan",
-             stroke = FALSE, radius = 100,
+             stroke = FALSE, radius = 200,
              highlightOptions = highlightOptions(fillColor = "darkorange",
-                                                 fillOpacity = 1)) %>%
-           #  popup = ~describe) %>%
+                                                 fillOpacity = 1),
+             popup = paste("Street Location:", bikeracks$street_nam)) %>%
   addControl("Bicycle Parking Racks in Manhattan", position = "topright") %>%
   addControl('<a href="https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=GeoJSON">Data source</a>',
-             position = "bottomleft")
+             position = "bottomleft") %>%
+  setMaxBounds(lng1 = 40,
+               lat1 = -70,
+               lng2 = 41,
+               lat2 = -76)
 
 bikeracks_map
 ```
+
+### Saving HTML
+
+```{r save widget, message=FALSE}
+#saveWidget(bikeracks_map, file = "bikeracks_map.html")
+```
+
 
 ## Assignment Conclusion
 

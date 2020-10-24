@@ -26,6 +26,9 @@ library(sf)
 library(leaflet)
 library(htmltools)
 library(htmlwidgets)
+library(ggplot2)
+library(ggthemes)
+library(units)
 ```
 
 ### Loading Data: Bicycle Parking Point Data
@@ -34,9 +37,18 @@ I'm excited about this exercise, because there is a map I have always wished exi
 
 I will bring in point data for the bicycle parking racks. My data source is the New York City Open Data portal. The dataset includes bicycle parking racks throughout New York City as of May 2019. The dataset alone has 26282 observations of existing bike racks; I will also include a filter to select only the borough of Manhattan for this exercise, which has only 8910 bicycle racks.
 
+I will give credit to my classmate Megan Willis-Jackson who helped me to transform my data to the correct coordinate plane.
+
 ```{r load bike data, message=FALSE, results='hide'}
+leaflet_plane <- "+proj=longlat +datum=WGS84"
+
 bikeracks <- st_read("https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=GeoJSON") %>%
-  filter(borough == "Manhattan")
+  filter(borough == "Manhattan") %>%
+  st_transform(crs = leaflet_plane)
+
+bikelanes <- st_read("https://data.cityofnewyork.us/api/geospatial/7vsa-caz7?method=export&format=GeoJSON") %>%
+  filter(boro == "1") %>%
+  st_transform(crs = leaflet_plane)
 ```
 
 ## Creating the Interactive Map
@@ -49,16 +61,22 @@ bikeracks_map <- leaflet(bikeracks,
   addProviderTiles("Stamen.TonerLite") %>%
   addCircles(fillColor = "cyan", color = "cyan",
              stroke = FALSE, radius = 200,
-             highlightOptions = highlightOptions(fillColor = "darkorange",
+             highlightOptions = highlightOptions(fillColor = "mediumblue",
                                                  fillOpacity = 1),
              popup = paste("Street Location:", bikeracks$street_nam)) %>%
+  addPolylines(data = bikelanes, stroke = T,
+               color = "pink",
+               opacity = 1,
+               weight = 1,
+               highlightOptions = highlightOptions(color = "violet",
+                                                   fillOpacity = 1)) %>%
   addControl("Bicycle Parking Racks in Manhattan", position = "topright") %>%
   addControl('<a href="https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=GeoJSON">Data source</a>',
              position = "bottomleft") %>%
-  setMaxBounds(lng1 = 40,
-               lat1 = -70,
-               lng2 = 41,
-               lat2 = -76)
+  setMaxBounds(lng1 = 40.49804,
+               lat1 = -74.25185,
+               lng2 = 40.91142,
+               lat2 = -73.70279)
 
 bikeracks_map
 ```

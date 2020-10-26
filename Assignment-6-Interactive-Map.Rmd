@@ -29,6 +29,7 @@ library(htmlwidgets)
 library(ggplot2)
 library(ggthemes)
 library(units)
+library(wesanderson)
 ```
 
 ### Loading Data: Bicycle Parking Point Data
@@ -44,7 +45,8 @@ leaflet_plane <- "+proj=longlat +datum=WGS84"
 
 bikeracks <- st_read("https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=GeoJSON") %>%
   filter(borough == "Manhattan") %>%
-  st_transform(crs = leaflet_plane)
+  st_transform(crs = leaflet_plane)%>%
+  filter(longitude !=0)
 
 bikelanes <- st_read("https://data.cityofnewyork.us/api/geospatial/7vsa-caz7?method=export&format=GeoJSON") %>%
   filter(boro == "1") %>%
@@ -56,27 +58,30 @@ bikelanes <- st_read("https://data.cityofnewyork.us/api/geospatial/7vsa-caz7?met
 For my map, I would like to create points as circles to represent each bicycle parking rack in Manhattan. Each of these circles will also have a popup label which includes the name of the street on which the bike is located.
 
 ```{r create map, message=FALSE}
-bikeracks_map <- leaflet(bikeracks,
-                         options = leafletOptions(minZoom = 0.1, maxZoom = 0.8)) %>%
+color_bins_lanes <- colorFactor(wes_palette(3), bikelanes$allclasses)
+
+bikeracks_map <- leaflet(bikeracks) %>%
   addProviderTiles("Stamen.TonerLite") %>%
   addCircles(fillColor = "cyan", color = "cyan",
-             stroke = FALSE, radius = 200,
+             stroke = FALSE, radius = 50,
              highlightOptions = highlightOptions(fillColor = "mediumblue",
                                                  fillOpacity = 1),
              popup = paste("Street Location:", bikeracks$street_nam)) %>%
   addPolylines(data = bikelanes, stroke = T,
                color = "pink",
                opacity = 1,
-               weight = 1,
+               weight = 3,
                highlightOptions = highlightOptions(color = "violet",
-                                                   fillOpacity = 1)) %>%
+                                                   fillOpacity = 1),
+              popup = paste("From Street: ", bikelanes$fromstreet,
+                            "To Street: ", bikelanes$tostreet)) %>%
   addControl("Bicycle Parking Racks in Manhattan", position = "topright") %>%
   addControl('<a href="https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=GeoJSON">Data source</a>',
              position = "bottomleft") %>%
-  setMaxBounds(lng1 = 40.49804,
-               lat1 = -74.25185,
-               lng2 = 40.91142,
-               lat2 = -73.70279)
+  setMaxBounds(lng1 = -75,
+               lat1 = 40,
+               lng2 = -73,
+               lat2 = 41)
 
 bikeracks_map
 ```

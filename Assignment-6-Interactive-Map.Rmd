@@ -58,17 +58,18 @@ bikelanes <- st_read("https://data.cityofnewyork.us/api/geospatial/7vsa-caz7?met
 For my map, I would like to create points as circles to represent each bicycle parking rack in Manhattan. Each of these circles will also have a popup label which includes the name of the street on which the bike is located.
 
 ```{r create map, message=FALSE}
-color_bins_lanes <- colorFactor(wes_palette(3), bikelanes$allclasses)
+#color_bins <- colorFactor(wes_palette(3), bikelanes$allclasses)
 
-bikeracks_map <- leaflet(bikeracks) %>%
+bikeracks_map <- leaflet(bikeracks,
+                         options = leafletOptions(minZoom = 1, maxZoom = 30)) %>%
   addProviderTiles("Stamen.TonerLite") %>%
   addCircles(fillColor = "cyan", color = "cyan",
-             stroke = FALSE, radius = 50,
+             stroke = FALSE, radius = 20,
              highlightOptions = highlightOptions(fillColor = "mediumblue",
                                                  fillOpacity = 1),
              popup = paste("Street Location:", bikeracks$street_nam)) %>%
   addPolylines(data = bikelanes, stroke = T,
-               color = "pink",
+               fillColor = "pink", color = "pink",
                opacity = 1,
                weight = 3,
                highlightOptions = highlightOptions(color = "violet",
@@ -78,10 +79,10 @@ bikeracks_map <- leaflet(bikeracks) %>%
   addControl("Bicycle Parking Racks in Manhattan", position = "topright") %>%
   addControl('<a href="https://data.cityofnewyork.us/api/geospatial/yh4a-g3fj?method=export&format=GeoJSON">Data source</a>',
              position = "bottomleft") %>%
-  setMaxBounds(lng1 = -75,
-               lat1 = 40,
-               lng2 = -73,
-               lat2 = 41)
+  setMaxBounds(lng1 = -74.04418,
+               lat1 = 40.679708,
+               lng2 = -73.871146,
+               lat2 = 40.891567)
 
 bikeracks_map
 ```
@@ -89,7 +90,7 @@ bikeracks_map
 ### Saving HTML
 
 ```{r save widget, message=FALSE}
-#saveWidget(bikeracks_map, file = "bikeracks_map.html")
+saveWidget(bikeracks_map, file = "bikeracks_map.html")
 ```
 
 

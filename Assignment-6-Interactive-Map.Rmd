@@ -96,7 +96,7 @@ saveWidget(bikeracks_map, file = "bikeracks_map.html")
 
 ## Assignment Conclusion
 
-I may wish to further this develop this map to become something useful for the Bike NYC community. A further iteration would include listing all bicycle parking racks throughout the five boroughs. If such data is available, I imagine I could also create another layer which includes data of proposed bicycle rack locations; I would make this points a different color from the points showing the existing bike parking racks.
+I may wish to further develop this map to become something useful for the Bike NYC community. A further iteration would include listing all bicycle parking racks throughout the five boroughs. If such data is available, I imagine I could also create another layer which includes data of proposed bicycle rack locations; I would make this points a different color from the points showing the existing bike parking racks.
 
 It's also important to include the data showing the existing (and potentially proposed) bicycle infrastructure. This would allow for several uses:
 

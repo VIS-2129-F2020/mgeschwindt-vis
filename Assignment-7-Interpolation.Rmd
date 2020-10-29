@@ -1,0 +1,67 @@
+---
+title: "Assignment 7: Raster Data"
+author: "Mary Geschwindt"
+date: "10/29/2020"
+output:
+    html_document:
+    theme: paper
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Document Setup
+
+### Load Libraries
+
+```{r load libraries, message=FALSE}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(htmltools)
+library(htmlwidgets)
+library(raster)
+library(gstat)
+library(spatial)
+```
+
+### Load Data
+
+```{r load data, message=FALSE}
+leaflet_plane <- 
+
+nyc_nhoods <- st_read("", quiet = TRUE) %>%
+  dplyr::select(name) %>%
+  st_transform(crs = leaflet_plane)
+```
+
+
+## Chloropleth Map
+
+```{r chloropleth map, message=FALSE}
+leaflet(nyc_nhoods) %>%
+  addProviderTiles("Stamen.TonerLite") %>%
+  addPoygons(highlightOptions = highlightOptions(fillColor = "purple",
+                                                 fillOpacity = 1),
+             label = ~name,
+             weight = 1)
+```
+
+
+## Points Map
+
+```{r points map, message=FALSE}
+
+```
+
+
+## Continuous Surface (Interpolation) Map
+
+```{r interpolatoin map, message=FALSE}
+
+```
+

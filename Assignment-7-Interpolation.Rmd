@@ -27,41 +27,132 @@ library(htmlwidgets)
 library(raster)
 library(gstat)
 library(spatial)
+library(stringr)
 ```
 
 ### Load Data
 
-```{r load data, message=FALSE}
-leaflet_plane <- 
+I will load in the census tract level data for means of transportation to work and travel time to work for census tracts in Boston. I will join this to each census tract to create a dataset which reads the data for each tract and can apply it spatially. I will give credit to my classmate Aron Lessor who taught me how to do this dataset join for census level data. I am using the ACS from 2018.
 
-nyc_nhoods <- st_read("", quiet = TRUE) %>%
-  dplyr::select(name) %>%
-  st_transform(crs = leaflet_plane)
+```{r load data and create new dataset through join, message=FALSE, warning=FALSE}
+tracts_info <- st_read("suffolk_county_acs2018_commuting.csv", quiet = TRUE) %>%
+  dplyr::select(GEO_ID, S0802_C01_090E) %>%
+  mutate(GEOID10 = as.numeric(str_sub(GEO_ID, -11, -1))) %>%
+  dplyr::select(GEOID10, S0802_C01_090E)
+
+census_tracts <- st_read("http://bostonopendata-boston.opendata.arcgis.com/datasets/4a8eb4fb3be44ed5a1eec28551b9f3b2_0.geojson?outSR=%7B%22latestWkid%22%3A3857%2C%22wkid%22%3A102100%7D", quiet = TRUE) %>%
+  mutate(GEOID10 = as.numeric(GEOID10))
+
+avg_travel_time <- left_join(census_tracts, tracts_info, by = "GEOID10", copy = FALSE) %>%
+  mutate(S0802_C01_090E = case_when(S0802_C01_090E == "-" ~ NA_real_,
+                                            S0802_C01_090E != "-" ~ as.numeric(S0802_C01_090E))) %>%
+  mutate(S0802_C01_090E = case_when(is.na(S0802_C01_090E) ~ round(mean(S0802_C01_090E, na.rm = TRUE),1),
+                                          !is.na(S0802_C01_090E) ~ S0802_C01_090E)) %>%
+  mutate(S0802_C01_090E = case_when(S0802_C01_090E == "N" ~ NA_real_,
+                                            S0802_C01_090E != "-" ~ as.numeric(S0802_C01_090E))) %>%
+  mutate(S0802_C01_090E = case_when(is.na(S0802_C01_090E) ~ round(mean(S0802_C01_090E, na.rm = TRUE),1),
+                                          !is.na(S0802_C01_090E) ~ S0802_C01_090E))
+
+avg_travel_time = avg_travel_time[-48,]
 ```
 
 
 ## Chloropleth Map
 
 ```{r chloropleth map, message=FALSE}
-leaflet(nyc_nhoods) %>%
-  addProviderTiles("Stamen.TonerLite") %>%
-  addPoygons(highlightOptions = highlightOptions(fillColor = "purple",
-                                                 fillOpacity = 1),
-             label = ~name,
-             weight = 1)
+avg_travel_time$describe <- paste("Tract", avg_travel_time$OBJECTID, "<br>", "Average Travel Time to Work", "Minutes", prettyNum(avg_travel_time$S0802_C01_090E, digits = 3)) %>%
+  lapply(htmltools::HTML)
+
+bins <- seq(min(avg_travel_time$S0802_C01_090E),
+            max(avg_travel_time$S0802_C01_090E), by = 15)
+pal <- colorNumeric("viridis",
+                    domain = avg_travel_time$S0802_C01_090E,
+                    na.color = "#00000000")
+
+tt_chloropleth_map <- leaflet(avg_travel_time) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addPolygons(highlightOptions = highlightOptions(fillOpacity = 1),
+              label = avg_travel_time$describe,
+              fillColor = ~pal(S0802_C01_090E),
+              weight = 1, color = "black") %>%
+  addLegend(pal = pal,
+            values = ~S0802_C01_090E,
+            bins = 10,
+            opacity = 0.7, title = "Average Travel Time to Work (Minutes)",
+            position = "topright")
+
+tt_chloropleth_map
 ```
 
 
 ## Points Map
 
-```{r points map, message=FALSE}
+```{r points map, message=FALSE, warning=FALSE}
+MA_state_plane <- "+proj=lcc +lat_1=41.71666666666667 +lat_2=42.68333333333333 +lat_0=41 +lon_0=-71.5 +x_0=200000 +y_0=750000 +ellps=GRS80 +units=m +no_defs "
 
+WGS84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+
+travel_time_points <- st_centroid(
+  st_transform(avg_travel_time, crs = MA_state_plane)) %>%
+  st_transform(WGS84)
+
+tt_points_map <- leaflet(travel_time_points) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addCircles(highlightOptions = highlightOptions(fillOpacity = 1),
+             label = avg_travel_time$describe,
+             fillColor = ~pal(S0802_C01_090E),
+             stroke = FALSE,
+             radius = 50,
+             fillOpacity = 1) %>%
+  addLegend(pal = pal,
+            values = ~S0802_C01_090E,
+            bins = 10,
+            opacity = 0.7, title = "Average Travel Time to Work (Minutes)",
+            position = "topright")
+
+tt_points_map
 ```
 
 
 ## Continuous Surface (Interpolation) Map
 
-```{r interpolatoin map, message=FALSE}
+```{r interpolatoin map, message=FALSE, warning=FALSE}
+travel_time_points_sp <- travel_time_points %>%
+  st_transform(MA_state_plane) %>%
+  as_Spatial()
 
+tt_poly_sp <- avg_travel_time %>%
+  st_transform(MA_state_plane) %>%
+  as_Spatial()
+
+boston_raster <- raster(tt_poly_sp, res=10)
+
+gs <- gstat(formula = S0802_C01_090E~1, locations = travel_time_points_sp)
+idw_interp <- interpolate(boston_raster, gs)
+
+idw_interp_clip <- mask(idw_interp, tt_poly_sp)
+
+tt_interpolation_map <- leaflet(travel_time_points) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addRasterImage(idw_interp_clip, colors = pal, opacity = 0.8) %>%
+  addLegend(pal = pal,
+            values = ~S0802_C01_090E,
+            bins = 10,
+            opacity = 0.7, title = "Average Travel Time to Work (Minutes)",
+            position = "topright")
+
+tt_interpolation_map
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 

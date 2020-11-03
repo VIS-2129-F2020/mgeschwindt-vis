@@ -32,7 +32,7 @@ library(stringr)
 
 ### Load Data
 
-I will load in the census tract level data for means of transportation to work and travel time to work for census tracts in Boston. I will join this to each census tract to create a dataset which reads the data for each tract and can apply it spatially. I will give credit to my classmate Aron Lessor who taught me how to do this dataset join for census level data. I am using the ACS from 2018.
+I will load in the census tract level data for average travel time to work for census tracts in Boston. I will join this data to each census tract to create a dataset which reads the data for each tract and can apply it spatially. I will give credit to my classmate Aron Lessor who taught me how to do this dataset join for census level data. I am using the ACS from 2018.
 
 ```{r load data and create new dataset through join, message=FALSE, warning=FALSE}
 tracts_info <- st_read("suffolk_county_acs2018_commuting.csv", quiet = TRUE) %>%
@@ -144,15 +144,12 @@ tt_interpolation_map <- leaflet(travel_time_points) %>%
 tt_interpolation_map
 ```
 
+## Assignment Conclusion
 
+The most informative map is the chloropleth map. For a variable like average travel time to work for census level data in Boston, it doesn't appear that there is a lot of variation in these travel times. Most census tracts appear to land somewhere in the middle of the averages for travel time to work, which is somewhere between 20-35 minutes. The chloropleth map makes it easy to distinguish at a glance where the color of the polygon changes (for example, from green to purple, or from green to yellow) and therefore makes it easier to tell what the range of travel times looks like from shortest to longest throughout the city. Commute times are measured in the dataset as an average time per census tract, and therefore it is not a variable which varies continuously across an area. Because of this, interpolation is not the most informative because it does not fill in any missing gaps of information.
 
+The most interesting map to me is the interpolation map. Even though I think the most informative map is the chloropleth map, the interpolation map has revealed an interesting pattern: purple points and yellow points appear vibrantly on the map where these points are concentrated amid a sea of the green color (Which seems to denote the most frequent and the average travel time). Purple points are the shorter travel times, while yellow points represent the longer travel times within the dataset. The interpolation map reveals that if there are any purple areas (shorter travel times), these are located near Downtown and South Boston, while any yellow areas (longer travel times) appear closer to the southwest periphery of the city. This may suggest information about people's commute patterns in Boston and where job centers are, perhaps. This map reveals an example that prompts me to explore how other data could be applied in order to figure out why that pattern exists. My next levels of data which I would be interested in overlaying to think through this pattern would be: mapping of transit systems; understanding the most used modes of transportation per census tract; and locations of jobs centers in Boston.
 
+For the same reasons, the most appropriate map to use for the data and the best map is the chloropleth map. This is the best and most appropriate map because I believe it most accurately represents the type of data. The nature of the polygons with boundaries makes it clear where the census tract boundaries are; since the data is measured as an average of the travel time per census tract, it makes the most sense to represent one number with its associated, delineated area.
 
-
-
-
-
-
-
-
-
+I find the map with the points to be useless for representing this data. If I had to consider one way to use points to represent this data better, however, I imagine I could play with the scale of the circles so that smaller circles equate to shorter commute times and larger circles equate to longer commute times. Still, such a map would not depict the census tract boundaries, which could be important to how the data varies because of certain spatial conditions relation to travel and how this changes from tract to tract (i.e. access to public transportation, street network variation, patterns of rush-hour congestion along streets within the tract, etc.).
